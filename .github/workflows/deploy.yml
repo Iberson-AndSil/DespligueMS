@@ -3,46 +3,54 @@ name: Deploy to AWS ECS
 on:
   push:
     branches:
-      - main
+      - main  # Este flujo se ejecutará cada vez que se haga un 'push' a la rama 'main'
 
 jobs:
   build_and_deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Usamos Ubuntu como entorno para ejecutar la acción
 
     steps:
+    # Paso 1: Checkout del código
     - name: Checkout code
       uses: actions/checkout@v2
 
+    # Paso 2: Configurar credenciales de AWS
     - name: Set up AWS CLI
       uses: aws-actions/configure-aws-credentials@v1
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}  # Se deben configurar como secretos en GitHub
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-2
+        aws-region: us-east-2  # Región de AWS en la que se encuentran tus servicios y repositorios
 
+    # Paso 3: Loguearse en Amazon ECR (Elastic Container Registry)
     - name: Log in to Amazon ECR
       run: |
-        aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin 123456789012.dkr.ecr.us-west-1.amazonaws.com
+        aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 123456789012.dkr.ecr.us-east-2.amazonaws.com
 
+    # Paso 4: Construir la imagen de Docker para Service 1 (servicel)
     - name: Build Docker image for Service 1
       run: |
-        docker build -t servicel ./servicel
-        docker tag servicel:latest 123456789012.dkr.ecr.us-west-1.amazonaws.com/servicel-repo:latest
+        docker build -t servicel ./servicel  # Asegúrate de que la ruta esté bien
+        docker tag servicel:latest 123456789012.dkr.ecr.us-east-2.amazonaws.com/servicel-repo:latest
 
+    # Paso 5: Empujar la imagen de Docker de Service 1 a Amazon ECR
     - name: Push Docker image to ECR for Service 1
       run: |
-        docker push 123456789012.dkr.ecr.us-west-1.amazonaws.com/servicel-repo:latest
+        docker push 123456789012.dkr.ecr.us-east-2.amazonaws.com/servicel-repo:latest
 
+    # Paso 6: Construir la imagen de Docker para Service 2 (service2)
     - name: Build Docker image for Service 2
       run: |
-        docker build -t service2 ./service2
-        docker tag service2:latest 123456789012.dkr.ecr.us-west-1.amazonaws.com/service2-repo:latest
+        docker build -t service2 ./service2  # Asegúrate de que la ruta esté bien
+        docker tag service2:latest 123456789012.dkr.ecr.us-east-2.amazonaws.com/service2-repo:latest
 
+    # Paso 7: Empujar la imagen de Docker de Service 2 a Amazon ECR
     - name: Push Docker image to ECR for Service 2
       run: |
-        docker push 123456789012.dkr.ecr.us-west-1.amazonaws.com/service2-repo:latest
+        docker push 123456789012.dkr.ecr.us-east-2.amazonaws.com/service2-repo:latest
 
+    # Paso 8: Desplegar las nuevas imágenes en ECS (Elastic Container Service)
     - name: Deploy to ECS
       run: |
-        aws ecs update-service --cluster my-cluster --service servicel-service --force-new-deployment
-        aws ecs update-service --cluster my-cluster --service service2-service --force-new-deployment
+        aws ecs update-service --cluster my-cluster --service servicel-service --force-new-deployment  # Desplegar Service 1
+        aws ecs update-service --cluster my-cluster --service service2-service --force-new-deployment  # Desplegar Service 2
