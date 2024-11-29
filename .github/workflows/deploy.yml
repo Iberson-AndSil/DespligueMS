@@ -1,0 +1,48 @@
+name: Deploy to AWS ECS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up AWS CLI
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-2
+
+    - name: Log in to Amazon ECR
+      run: |
+        aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin 123456789012.dkr.ecr.us-west-1.amazonaws.com
+
+    - name: Build Docker image for Service 1
+      run: |
+        docker build -t servicel .
+        docker tag servicel:latest 123456789012.dkr.ecr.us-west-1.amazonaws.com/servicel-repo:latest
+
+    - name: Push Docker image to ECR for Service 1
+      run: |
+        docker push 123456789012.dkr.ecr.us-west-1.amazonaws.com/servicel-repo:latest
+
+    - name: Build Docker image for Service 2
+      run: |
+        docker build -t service2 .
+        docker tag service2:latest 123456789012.dkr.ecr.us-west-1.amazonaws.com/service2-repo:latest
+
+    - name: Push Docker image to ECR for Service 2
+      run: |
+        docker push 123456789012.dkr.ecr.us-west-1.amazonaws.com/service2-repo:latest
+
+    - name: Deploy to ECS
+      run: |
+        aws ecs update-service --cluster my-cluster --service servicel-service --force-new-deployment
+        aws ecs update-service --cluster my-cluster --service service2-service --force-new-deployment
