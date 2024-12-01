@@ -1,0 +1,9 @@
+server:
+  http_listen_port: 3100
+ingester:
+  chunk_idle_period: 1m
+  chunk_retain_period: 1m
+  max_transfer_retries: 0
+storage_config:
+  boltdb:
+    directory: /loki/index
