@@ -1,1 +1,1 @@
-# DespligueMS
+![Idea de proyecto](./arquitectura.jpg)
